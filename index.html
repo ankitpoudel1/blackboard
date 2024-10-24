@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Canvas Trail Drawing with Touch and Desktop Support</title>
+  <title>Blackboard</title>
   <style>
     /* Existing CSS styles */
     * {
@@ -31,13 +31,13 @@
     .outer-circle {
       width: 50px;
       height: 50px;
-      border: 2px solid rgba(147, 51, 234, 0.7); /* Default light purple border */
+      border: 2px solid #9333ea; /* Default purple border */
       transition: transform 0.1s ease-out;
     }
     .inner-circle {
       width: 10px;
       height: 10px; /* Smaller inner circle */
-      background-color: rgba(147, 51, 234, 1); /* Default solid purple */
+      background-color: #9333ea; /* Default solid purple */
     }
     .canvas-container {
       position: absolute;
@@ -92,17 +92,14 @@
     .draw-indicator.active {
       display: inline-block; /* Show when drawing mode is active */
     }
-    .erase-btn {
-      right: 280px;
-      top: 20px;
-    }
-    .big-erase-btn {
-      right: 140px;
-      top: 20px;
-    }
     .clear-btn {
       right: 20px;
       top: 20px;
+      gap: 5px;
+    }
+    .eraser-btn {
+      right: 20px;
+      top: 80px;
       gap: 5px;
     }
     .control-panel {
@@ -116,7 +113,7 @@
       gap: 20px;
       font-size: 16px;
     }
-    .color-picker, .stroke-width-slider {
+    .color-picker, .stroke-width-slider, .eraser-width-slider {
       cursor: pointer;
       border: none;
       background: none;
@@ -126,7 +123,7 @@
       height: 40px;
       padding: 0;
     }
-    .stroke-width-slider {
+    .stroke-width-slider, .eraser-width-slider {
       width: 120px;
     }
     .save-btn {
@@ -225,15 +222,8 @@
     <button class="btn next-slide-btn">Next</button>
   </div>
 
-  <button class="btn erase-btn" title="Small Eraser">
-    Small Eraser
-  </button>
-
-  <button class="btn big-erase-btn" title="Big Eraser">
-    Big Eraser
-  </button>
-
   <button class="btn clear-btn">Clear All</button>
+  <button class="btn eraser-btn" title="Ctrl Shift E is shortcut">Eraser</button>
 
   <div class="draw-indicator">Drawing Mode ON</div>
 
@@ -245,7 +235,7 @@
     Save All Slides
   </button>
 
-  <!-- Control Panel for Color Picker and Stroke Width -->
+  <!-- Control Panel for Color Picker, Stroke Width, and Eraser Width -->
   <div class="control-panel">
     <label>
       <span>Color:</span>
@@ -255,6 +245,11 @@
       <span>Stroke Width:</span>
       <input type="range" id="strokeWidthSlider" class="stroke-width-slider" min="1" max="20" value="5">
       <span id="strokeWidthValue">5</span>
+    </label>
+    <label>
+      <span>Eraser Width:</span>
+      <input type="range" id="eraserWidthSlider" class="eraser-width-slider" min="1" max="50" value="10">
+      <span id="eraserWidthValue">10</span>
     </label>
   </div>
 
@@ -270,14 +265,15 @@
 
     const outerCircle = document.querySelector('.outer-circle');
     const innerCircle = document.querySelector('.inner-circle');
-    const eraseBtn = document.querySelector('.erase-btn');
-    const bigEraseBtn = document.querySelector('.big-erase-btn');
     const clearBtn = document.querySelector('.clear-btn');
+    const eraserBtn = document.querySelector('.eraser-btn');
     const saveBtn = document.querySelector('.save-btn');
     const saveAllBtn = document.querySelector('.save-all-btn');
     const colorPicker = document.querySelector('#colorPicker');
     const strokeWidthSlider = document.querySelector('#strokeWidthSlider');
     const strokeWidthValue = document.querySelector('#strokeWidthValue');
+    const eraserWidthSlider = document.querySelector('#eraserWidthSlider');
+    const eraserWidthValue = document.querySelector('#eraserWidthValue');
     const drawIndicator = document.querySelector('.draw-indicator');
     const addSlideBtn = document.querySelector('.add-slide-btn');
     const prevSlideBtn = document.querySelector('.prev-slide-btn');
@@ -286,14 +282,18 @@
 
     let drawingMode = false;
     let eraserMode = false;
-    let bigEraserMode = false;
     let trailColor = '#9333ea';
     let strokeWidth = 5;
+    let eraserWidth = 10;
     let width = window.innerWidth;
     let height = window.innerHeight;
 
     // Variables for slide management
-    let slides = [];
+    let slides = [
+      {
+        imageData: null
+      }
+    ];
     let currentSlideIndex = 0;
 
     canvas.width = width;
@@ -302,7 +302,7 @@
     transitionCanvas.height = height;
 
     // Initialize the first slide
-    slides.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    slides[0].imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     updateSlideIndicator();
 
     window.addEventListener('resize', () => {
@@ -337,7 +337,7 @@
         isDrawing = true;
         draw(e);
       } else {
-        if (drawingMode || eraserMode || bigEraserMode) {
+        if (drawingMode || eraserMode) {
           isDrawing = true;
           draw(e);
         }
@@ -375,16 +375,11 @@
       }
 
       // Ensure cursor is updated before this check
-      if (!isDrawing && !drawingMode && !eraserMode && !bigEraserMode) return;
+      if (!isDrawing && !drawingMode && !eraserMode) return;
 
       // Eraser functionality
       if (eraserMode) {
-        ctx.clearRect(mouseX - 10, mouseY - 10, 20, 20);
-        return;
-      }
-
-      if (bigEraserMode) {
-        ctx.clearRect(mouseX - 30, mouseY - 30, 60, 60);
+        ctx.clearRect(mouseX - eraserWidth / 2, mouseY - eraserWidth / 2, eraserWidth, eraserWidth);
         return;
       }
 
@@ -405,7 +400,6 @@
         if (!e.target.closest('.btn') && !e.target.closest('.control-panel')) {
           drawingMode = !drawingMode;
           eraserMode = false;
-          bigEraserMode = false;
           updateUI();
         }
       });
@@ -417,19 +411,9 @@
         const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
         const isCtrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
 
-        if (isCtrlOrCmd && e.shiftKey) {
-          switch (e.key.toLowerCase()) {
-            case 'e':
-              e.preventDefault();
-              toggleEraserMode();
-              break;
-            case 'b':
-              e.preventDefault();
-              toggleBigEraserMode();
-              break;
-            default:
-              break;
-          }
+        if (isCtrlOrCmd && e.shiftKey && e.key.toLowerCase() === 'e') {
+          e.preventDefault();
+          toggleEraserMode();
         }
       });
     }
@@ -457,12 +441,9 @@
       strokeWidthValue.textContent = strokeWidth;
     });
 
-    eraseBtn.addEventListener('click', () => {
-      toggleEraserMode();
-    });
-
-    bigEraseBtn.addEventListener('click', () => {
-      toggleBigEraserMode();
+    eraserWidthSlider.addEventListener('input', (e) => {
+      eraserWidth = parseInt(e.target.value);
+      eraserWidthValue.textContent = eraserWidth;
     });
 
     clearBtn.addEventListener('click', () => {
@@ -484,47 +465,38 @@
         drawIndicator.textContent = 'Drawing Mode ON';
         drawIndicator.classList.add('active');
       } else if (eraserMode) {
-        drawIndicator.textContent = 'Small Eraser Mode';
-        drawIndicator.classList.add('active');
-      } else if (bigEraserMode) {
-        drawIndicator.textContent = 'Big Eraser Mode';
+        drawIndicator.textContent = 'Eraser Mode ON';
         drawIndicator.classList.add('active');
       } else {
         drawIndicator.classList.remove('active');
       }
 
-      eraseBtn.classList.toggle('active', eraserMode);
-      bigEraseBtn.classList.toggle('active', bigEraserMode);
+      if (eraserMode) {
+        eraserBtn.classList.add('active');
+      } else {
+        eraserBtn.classList.remove('active');
+      }
     }
 
     function toggleEraserMode() {
       eraserMode = !eraserMode;
       if (eraserMode) {
-        bigEraserMode = false;
         drawingMode = false;
       }
       updateUI();
     }
 
-    function toggleBigEraserMode() {
-      bigEraserMode = !bigEraserMode;
-      if (bigEraserMode) {
-        eraserMode = false;
-        drawingMode = false;
-      }
-      updateUI();
-    }
+    // Eraser button event listener
+    eraserBtn.addEventListener('click', toggleEraserMode);
 
     // Functions for slide management
     function saveCurrentSlide() {
-      // Save the current canvas content to slides array
-      slides[currentSlideIndex] = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      slides[currentSlideIndex].imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     }
 
     function loadCurrentSlide() {
-      // Load the current slide's content into the canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.putImageData(slides[currentSlideIndex], 0, 0);
+      ctx.putImageData(slides[currentSlideIndex].imageData, 0, 0);
     }
 
     function updateSlideIndicator() {
@@ -540,7 +512,9 @@
 
       // Add a new slide
       currentSlideIndex = slides.length; // Set to the new slide index
-      slides.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      slides.push({
+        imageData: ctx.getImageData(0, 0, canvas.width, canvas.height)
+      });
 
       updateSlideIndicator();
     });
@@ -561,7 +535,7 @@
       saveCurrentSlide();
 
       // Get the target slide data
-      const targetSlideData = slides[targetIndex];
+      const targetSlideData = slides[targetIndex].imageData;
 
       // Prepare the transition canvas
       transitionCtx.clearRect(0, 0, transitionCanvas.width, transitionCanvas.height);
@@ -602,7 +576,7 @@
       setTimeout(() => {
         // Swap the contents of the canvases
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.putImageData(slides[currentSlideIndex], 0, 0);
+        ctx.putImageData(slides[currentSlideIndex].imageData, 0, 0);
 
         // Reset canvas positions
         canvas.style.transition = 'none';
@@ -618,7 +592,8 @@
     saveAllBtn.addEventListener('click', () => {
       const zip = new JSZip();
 
-      slides.forEach((slideData, index) => {
+      slides.forEach((slide, index) => {
+        const slideData = slide.imageData;
         // Create a temporary canvas to render the slide
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width;
