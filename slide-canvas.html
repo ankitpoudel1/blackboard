@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blackboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      height: 100vh;
+      background-color: #0d1117;
+      overflow: hidden;
+      cursor: none; 
+      position: relative;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
+    .circle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+    .outer-circle {
+      width: 50px;
+      height: 50px;
+      border: 2px solid rgba(147, 51, 234, 0.7); 
+      transition: transform 0.1s ease-out;
+    }
+    .inner-circle {
+      width: 10px;
+      height: 10px;
+      background-color: rgba(147, 51, 234, 1); 
+    }
+    .canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .btn, .control-panel {
+      position: absolute;
+      top: 20px;
+      padding: 10px 20px;
+      background-color: #5e5cc6;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px; 
+    }
+    .btn svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+    .btn:hover {
+      background-color: #84bada;
+    }
+    .btn.active {
+      background-color: #4CAF50;
+    }
+    .draw-indicator {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      color: white;
+      border: none;
+      background-color: #1E90FF;
+      border-radius: 5px;
+      display: none; 
+      font-size: 14px;
+    }
+    .draw-indicator.active {
+      display: inline-block; 
+    }
+    .erase-btn {
+      right: 240px;
+      top: 20px;
+    }
+    .big-erase-btn {
+      right: 120px;
+      top: 20px;
+    }
+    .clear-btn {
+      right: 20px;
+      top: 20px;
+      gap: 5px; 
+    }
+    .control-panel {
+      left: 20px;
+      top: 60px;
+      display: flex;
+      align-items: center;
+      background-color: #5e5cc6;
+      border-radius: 5px;
+      padding: 10px 15px;
+      gap: 15px;
+      font-size: 14px;
+    }
+    .color-picker, .stroke-width-slider {
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+    .color-picker {
+      width: 30px;
+      height: 30px;
+      padding: 0;
+    }
+    .stroke-width-slider {
+      width: 100px;
+    }
+    .save-btn {
+      position: absolute;
+      top: 100px;
+      right: 20px;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .save-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+    .save-btn:hover {
+      background-color: #45a049;
+    }
+
+    .slide-controls {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slide-controls .btn {
+      position: relative;
+      top: 0;
+      left: 0;
+    }
+    .slide-indicator {
+      padding: 10px 15px;
+      background-color: #333;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .save-all-btn {
+      position: absolute;
+      top: 140px;
+      right: 20px;
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .save-all-btn:hover {
+      background-color: #45a049;
+    }
+    /* Label styles */
+    .control-panel label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .control-panel label span {
+      font-size: 14px;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+
+  <div class="canvas-container">
+    <canvas id="trailCanvas"></canvas>
+    <canvas id="transitionCanvas"></canvas>
+  </div>
+
+  <div class="circle outer-circle"></div>
+  <div class="circle inner-circle"></div>
+
+  <div class="slide-controls">
+    <button class="btn add-slide-btn">Add Slide</button>
+    <button class="btn prev-slide-btn">Previous</button>
+    <div class="slide-indicator">1/1</div>
+    <button class="btn next-slide-btn">Next</button>
+  </div>
+
+  <button class="btn erase-btn" title="Small Eraser (Ctrl+Shift+E / Cmd+Shift+E)">
+    Small Eraser
+  </button>
+
+  <button class="btn big-erase-btn" title="Big Eraser (Ctrl+Shift+B / Cmd+Shift+B)">
+    Big Eraser
+  </button>
+
+  <button class="btn clear-btn">Clear All</button>
+
+  <div class="draw-indicator">Drawing Mode ON</div>
+
+  <button class="save-btn" title="Save as Image">
+    Save as Image
+  </button>
+
+  <button class="save-all-btn" title="Save All Slides">
+    Save All Slides
+  </button>
+
+  <div class="control-panel">
+    <label>
+      <span>Color:</span>
+      <input type="color" id="colorPicker" class="color-picker" value="#9333ea">
+    </label>
+    <label>
+      <span>Stroke Width:</span>
+      <input type="range" id="strokeWidthSlider" class="stroke-width-slider" min="1" max="20" value="5">
+      <span id="strokeWidthValue">5</span>
+    </label>
+  </div>
+
+  <script>
+    const canvasContainer = document.querySelector('.canvas-container');
+    const canvas = document.getElementById('trailCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const transitionCanvas = document.getElementById('transitionCanvas');
+    const transitionCtx = transitionCanvas.getContext('2d');
+
+    const outerCircle = document.querySelector('.outer-circle');
+    const innerCircle = document.querySelector('.inner-circle');
+    const eraseBtn = document.querySelector('.erase-btn');
+    const bigEraseBtn = document.querySelector('.big-erase-btn');
+    const clearBtn = document.querySelector('.clear-btn');
+    const saveBtn = document.querySelector('.save-btn');
+    const colorPicker = document.querySelector('#colorPicker');
+    const strokeWidthSlider = document.querySelector('#strokeWidthSlider');
+    const strokeWidthValue = document.querySelector('#strokeWidthValue');
+    const drawIndicator = document.querySelector('.draw-indicator');
+
+    const addSlideBtn = document.querySelector('.add-slide-btn');
+    const prevSlideBtn = document.querySelector('.prev-slide-btn');
+    const nextSlideBtn = document.querySelector('.next-slide-btn');
+    const saveAllBtn = document.querySelector('.save-all-btn');
+    const slideIndicator = document.querySelector('.slide-indicator');
+
+    let drawingMode = false;
+    let eraserMode = false;
+    let bigEraserMode = false;
+    let trailColor = '#9333ea';
+    let strokeWidth = 5;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    let slides = [];
+    let currentSlideIndex = 0;
+
+    canvas.width = width;
+    canvas.height = height;
+    transitionCanvas.width = width;
+    transitionCanvas.height = height;
+
+    slides.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    updateSlideIndicator();
+
+    window.addEventListener('resize', () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      transitionCanvas.width = width;
+      transitionCanvas.height = height;
+      loadCurrentSlide();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.btn') && !e.target.closest('.control-panel')) {
+        drawingMode = !drawingMode;
+        eraserMode = false;
+        bigEraserMode = false;
+        updateUI();
+      }
+    });
+
+    colorPicker.addEventListener('input', (e) => {
+      trailColor = e.target.value;
+      outerCircle.style.border = `2px solid ${trailColor}`;
+      innerCircle.style.backgroundColor = trailColor;
+    });
+
+    strokeWidthSlider.addEventListener('input', (e) => {
+      strokeWidth = parseInt(e.target.value);
+      strokeWidthValue.textContent = strokeWidth;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      const mouseX = e.pageX;
+      const mouseY = e.pageY;
+
+      outerCircle.style.left = `${mouseX}px`;
+      outerCircle.style.top = `${mouseY}px`;
+      innerCircle.style.left = `${mouseX}px`;
+      innerCircle.style.top = `${mouseY}px`;
+
+      if (drawingMode && !eraserMode && !bigEraserMode) {
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, strokeWidth / 2, 0, Math.PI * 2); // Adjusted for stroke width
+        ctx.fillStyle = trailColor;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = trailColor;
+        ctx.fill();
+      }
+
+      if (eraserMode) {
+        ctx.clearRect(mouseX - 10, mouseY - 10, 20, 20);
+      }
+
+      if (bigEraserMode) {
+        ctx.clearRect(mouseX - 30, mouseY - 30, 60, 60);
+      }
+    });
+
+    eraseBtn.addEventListener('click', () => {
+      eraserMode = !eraserMode;
+      bigEraserMode = false;
+      drawingMode = false;
+      updateUI();
+    });
+
+    bigEraseBtn.addEventListener('click', () => {
+      bigEraserMode = !bigEraserMode;
+      eraserMode = false;
+      drawingMode = false;
+      updateUI();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      saveCurrentSlide();
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const dataURL = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = `slide_${currentSlideIndex + 1}.png`;
+      link.click();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isCtrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+
+      if (isCtrlOrCmd && e.shiftKey) {
+        switch (e.key.toLowerCase()) {
+          case 'e':
+            e.preventDefault();
+            toggleEraserMode();
+            break;
+          case 'b':
+            e.preventDefault();
+            toggleBigEraserMode();
+            break;
+          default:
+            break;
+        }
+      }
+    });
+
+    function toggleEraserMode() {
+      eraserMode = !eraserMode;
+      if (eraserMode) {
+        bigEraserMode = false;
+        drawingMode = false;
+      }
+      updateUI();
+    }
+
+    function toggleBigEraserMode() {
+      bigEraserMode = !bigEraserMode;
+      if (bigEraserMode) {
+        eraserMode = false;
+        drawingMode = false;
+      }
+      updateUI();
+    }
+
+    function updateUI() {
+      if (drawingMode) {
+        drawIndicator.classList.add('active');
+      } else {
+        drawIndicator.classList.remove('active');
+      }
+
+      eraseBtn.classList.toggle('active', eraserMode);
+      bigEraseBtn.classList.toggle('active', bigEraserMode);
+    }
+
+    function saveCurrentSlide() {
+      slides[currentSlideIndex] = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    }
+
+    function loadCurrentSlide() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.putImageData(slides[currentSlideIndex], 0, 0);
+    }
+
+    function updateSlideIndicator() {
+      slideIndicator.textContent = `${currentSlideIndex + 1}/${slides.length}`;
+    }
+
+    addSlideBtn.addEventListener('click', () => {
+      saveCurrentSlide();
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      currentSlideIndex = slides.length; 
+      slides.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+
+      updateSlideIndicator();
+    });
+
+    prevSlideBtn.addEventListener('click', () => {
+      if (currentSlideIndex > 0) {
+        navigateToSlide(currentSlideIndex - 1, 'left');
+      }
+    });
+
+    nextSlideBtn.addEventListener('click', () => {
+      if (currentSlideIndex < slides.length - 1) {
+        navigateToSlide(currentSlideIndex + 1, 'right');
+      }
+    });
+
+    function navigateToSlide(targetIndex, direction) {
+      saveCurrentSlide();
+
+      const targetSlideData = slides[targetIndex];
+
+      transitionCtx.clearRect(0, 0, transitionCanvas.width, transitionCanvas.height);
+      transitionCtx.putImageData(targetSlideData, 0, 0);
+
+      canvas.style.transition = 'none';
+      transitionCanvas.style.transition = 'none';
+
+      if (direction === 'right') {
+        canvas.style.left = '0px';
+        transitionCanvas.style.left = `${width}px`;
+      } else {
+        canvas.style.left = '0px';
+        transitionCanvas.style.left = `-${width}px`;
+      }
+
+      void canvas.offsetWidth;
+
+      canvas.style.transition = 'left 0.5s ease';
+      transitionCanvas.style.transition = 'left 0.5s ease';
+
+      if (direction === 'right') {
+        canvas.style.left = `-${width}px`;
+        transitionCanvas.style.left = '0px';
+      } else {
+        canvas.style.left = `${width}px`;
+        transitionCanvas.style.left = '0px';
+      }
+
+      currentSlideIndex = targetIndex;
+      updateSlideIndicator();
+
+      setTimeout(() => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.putImageData(slides[currentSlideIndex], 0, 0);
+
+        canvas.style.transition = 'none';
+        transitionCanvas.style.transition = 'none';
+        canvas.style.left = '0px';
+        transitionCanvas.style.left = '0px';
+
+        transitionCtx.clearRect(0, 0, transitionCanvas.width, transitionCanvas.height);
+      }, 500); 
+    }
+
+    saveAllBtn.addEventListener('click', () => {
+      const zip = new JSZip();
+
+      slides.forEach((slideData, index) => {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+
+        tempCtx.putImageData(slideData, 0, 0);
+
+        const dataURL = tempCanvas.toDataURL('image/png');
+
+        const base64Data = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+
+        zip.file(`slide_${index + 1}.png`, base64Data, { base64: true });
+      });
+
+      zip.generateAsync({ type: 'blob' }).then(function(content) {
+        saveAs(content, 'slides.zip');
+      });
+    });
+  </script>
+</body>
+</html>
