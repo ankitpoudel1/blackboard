@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blackboard</title>
+  <title>Canvas Trail Drawing with Touch and Desktop Support</title>
   <style>
+    /* Existing CSS styles */
     * {
       margin: 0;
       padding: 0;
@@ -13,10 +14,13 @@
       height: 100vh;
       background-color: #0d1117;
       overflow: hidden;
-      cursor: none; 
+      cursor: none; /* Hide the default mouse cursor */
       position: relative;
       font-family: Arial, sans-serif;
       color: white;
+      -webkit-user-select: none; /* Disable text selection on touch devices */
+      -ms-user-select: none;
+      user-select: none;
     }
     .circle {
       position: absolute;
@@ -27,13 +31,13 @@
     .outer-circle {
       width: 50px;
       height: 50px;
-      border: 2px solid rgba(147, 51, 234, 0.7); 
+      border: 2px solid rgba(147, 51, 234, 0.7); /* Default light purple border */
       transition: transform 0.1s ease-out;
     }
     .inner-circle {
       width: 10px;
-      height: 10px;
-      background-color: rgba(147, 51, 234, 1); 
+      height: 10px; /* Smaller inner circle */
+      background-color: rgba(147, 51, 234, 1); /* Default solid purple */
     }
     .canvas-container {
       position: absolute;
@@ -51,7 +55,7 @@
     .btn, .control-panel {
       position: absolute;
       top: 20px;
-      padding: 10px 20px;
+      padding: 15px 25px; /* Increased padding for touch devices */
       background-color: #5e5cc6;
       color: white;
       border: none;
@@ -59,58 +63,58 @@
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px; 
+      gap: 8px; /* Space between icon and text */
+      font-size: 16px; /* Increased font size */
     }
     .btn svg {
-      width: 20px;
-      height: 20px;
+      width: 24px; /* Increased size for touch devices */
+      height: 24px;
       fill: white;
     }
     .btn:hover {
       background-color: #84bada;
     }
     .btn.active {
-      background-color: #4CAF50;
+      background-color: #4CAF50; /* Green for active state */
     }
     .draw-indicator {
       position: absolute;
       top: 20px;
       left: 20px;
-      padding: 10px 20px;
+      padding: 15px 25px;
       color: white;
       border: none;
-      background-color: #1E90FF;
+      background-color: #1E90FF; /* Blue color for active drawing mode */
       border-radius: 5px;
-      display: none; 
-      font-size: 14px;
+      display: none; /* Hidden by default */
+      font-size: 16px;
     }
     .draw-indicator.active {
-      display: inline-block; 
+      display: inline-block; /* Show when drawing mode is active */
     }
     .erase-btn {
-      right: 240px;
+      right: 280px;
       top: 20px;
     }
     .big-erase-btn {
-      right: 120px;
+      right: 140px;
       top: 20px;
     }
     .clear-btn {
       right: 20px;
       top: 20px;
-      gap: 5px; 
+      gap: 5px;
     }
     .control-panel {
       left: 20px;
-      top: 60px;
+      top: 80px; /* Adjusted for larger buttons */
       display: flex;
       align-items: center;
       background-color: #5e5cc6;
       border-radius: 5px;
-      padding: 10px 15px;
-      gap: 15px;
-      font-size: 14px;
+      padding: 15px 20px;
+      gap: 20px;
+      font-size: 16px;
     }
     .color-picker, .stroke-width-slider {
       cursor: pointer;
@@ -118,37 +122,38 @@
       background: none;
     }
     .color-picker {
-      width: 30px;
-      height: 30px;
+      width: 40px;
+      height: 40px;
       padding: 0;
     }
     .stroke-width-slider {
-      width: 100px;
+      width: 120px;
     }
     .save-btn {
       position: absolute;
-      top: 100px;
+      top: 140px;
       right: 20px;
-      padding: 10px 20px;
+      padding: 15px 25px;
       background-color: #4CAF50;
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 16px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
     .save-btn svg {
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       fill: white;
     }
     .save-btn:hover {
       background-color: #45a049;
     }
 
+    /* New styles for slide navigation */
     .slide-controls {
       position: absolute;
       top: 20px;
@@ -164,22 +169,22 @@
       left: 0;
     }
     .slide-indicator {
-      padding: 10px 15px;
+      padding: 15px 20px;
       background-color: #333;
       border-radius: 5px;
-      font-size: 14px;
+      font-size: 16px;
     }
     .save-all-btn {
       position: absolute;
-      top: 140px;
+      top: 200px;
       right: 20px;
-      padding: 10px 20px;
+      padding: 15px 25px;
       background-color: #4CAF50;
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 16px;
     }
     .save-all-btn:hover {
       background-color: #45a049;
@@ -188,25 +193,31 @@
     .control-panel label {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 8px;
     }
     .control-panel label span {
-      font-size: 14px;
+      font-size: 16px;
     }
   </style>
+  <!-- Include JSZip and FileSaver.js libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
 
+  <!-- Canvas container to hold both canvases for animation -->
   <div class="canvas-container">
+    <!-- Main canvas element for the current slide -->
     <canvas id="trailCanvas"></canvas>
+    <!-- Secondary canvas for slide transitions -->
     <canvas id="transitionCanvas"></canvas>
   </div>
 
+  <!-- Custom cursor -->
   <div class="circle outer-circle"></div>
   <div class="circle inner-circle"></div>
 
+  <!-- Slide Controls -->
   <div class="slide-controls">
     <button class="btn add-slide-btn">Add Slide</button>
     <button class="btn prev-slide-btn">Previous</button>
@@ -214,11 +225,11 @@
     <button class="btn next-slide-btn">Next</button>
   </div>
 
-  <button class="btn erase-btn" title="Small Eraser (Ctrl+Shift+E / Cmd+Shift+E)">
+  <button class="btn erase-btn" title="Small Eraser">
     Small Eraser
   </button>
 
-  <button class="btn big-erase-btn" title="Big Eraser (Ctrl+Shift+B / Cmd+Shift+B)">
+  <button class="btn big-erase-btn" title="Big Eraser">
     Big Eraser
   </button>
 
@@ -234,6 +245,7 @@
     Save All Slides
   </button>
 
+  <!-- Control Panel for Color Picker and Stroke Width -->
   <div class="control-panel">
     <label>
       <span>Color:</span>
@@ -247,10 +259,12 @@
   </div>
 
   <script>
+    // Variables and initial setup remain the same
     const canvasContainer = document.querySelector('.canvas-container');
     const canvas = document.getElementById('trailCanvas');
     const ctx = canvas.getContext('2d');
 
+    // Secondary canvas for transitions
     const transitionCanvas = document.getElementById('transitionCanvas');
     const transitionCtx = transitionCanvas.getContext('2d');
 
@@ -260,15 +274,14 @@
     const bigEraseBtn = document.querySelector('.big-erase-btn');
     const clearBtn = document.querySelector('.clear-btn');
     const saveBtn = document.querySelector('.save-btn');
+    const saveAllBtn = document.querySelector('.save-all-btn');
     const colorPicker = document.querySelector('#colorPicker');
     const strokeWidthSlider = document.querySelector('#strokeWidthSlider');
     const strokeWidthValue = document.querySelector('#strokeWidthValue');
     const drawIndicator = document.querySelector('.draw-indicator');
-
     const addSlideBtn = document.querySelector('.add-slide-btn');
     const prevSlideBtn = document.querySelector('.prev-slide-btn');
     const nextSlideBtn = document.querySelector('.next-slide-btn');
-    const saveAllBtn = document.querySelector('.save-all-btn');
     const slideIndicator = document.querySelector('.slide-indicator');
 
     let drawingMode = false;
@@ -279,6 +292,7 @@
     let width = window.innerWidth;
     let height = window.innerHeight;
 
+    // Variables for slide management
     let slides = [];
     let currentSlideIndex = 0;
 
@@ -287,6 +301,7 @@
     transitionCanvas.width = width;
     transitionCanvas.height = height;
 
+    // Initialize the first slide
     slides.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
     updateSlideIndicator();
 
@@ -297,17 +312,139 @@
       canvas.height = height;
       transitionCanvas.width = width;
       transitionCanvas.height = height;
+      // Reload current slide after resizing
       loadCurrentSlide();
     });
 
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.btn') && !e.target.closest('.control-panel')) {
-        drawingMode = !drawingMode;
-        eraserMode = false;
-        bigEraserMode = false;
-        updateUI();
+    let isDrawing = false;
+    let isTouchDevice = false;
+
+    // Detect touch device
+    function detectTouchDevice() {
+      if ('ontouchstart' in window || navigator.maxTouchPoints) {
+        isTouchDevice = true;
+        // Hide custom cursor on touch devices
+        outerCircle.style.display = 'none';
+        innerCircle.style.display = 'none';
       }
-    });
+    }
+    detectTouchDevice();
+
+    // Start Drawing (Mouse and Touch)
+    function startDrawing(e) {
+      if (isTouchDevice) {
+        e.preventDefault();
+        isDrawing = true;
+        draw(e);
+      } else {
+        if (drawingMode || eraserMode || bigEraserMode) {
+          isDrawing = true;
+          draw(e);
+        }
+      }
+    }
+
+    // Stop Drawing (Mouse and Touch)
+    function stopDrawing(e) {
+      if (isTouchDevice) {
+        e.preventDefault();
+        isDrawing = false;
+      } else {
+        isDrawing = false;
+      }
+    }
+
+    // Drawing Function (Mouse and Touch)
+    function draw(e) {
+      let mouseX, mouseY;
+
+      if (e.type.startsWith('touch')) {
+        const touch = e.touches[0] || e.changedTouches[0];
+        mouseX = touch.pageX;
+        mouseY = touch.pageY;
+      } else {
+        mouseX = e.pageX;
+        mouseY = e.pageY;
+      }
+
+      if (!isTouchDevice) {
+        outerCircle.style.left = `${mouseX}px`;
+        outerCircle.style.top = `${mouseY}px`;
+        innerCircle.style.left = `${mouseX}px`;
+        innerCircle.style.top = `${mouseY}px`;
+      }
+
+      // Ensure cursor is updated before this check
+      if (!isDrawing && !drawingMode && !eraserMode && !bigEraserMode) return;
+
+      // Eraser functionality
+      if (eraserMode) {
+        ctx.clearRect(mouseX - 10, mouseY - 10, 20, 20);
+        return;
+      }
+
+      if (bigEraserMode) {
+        ctx.clearRect(mouseX - 30, mouseY - 30, 60, 60);
+        return;
+      }
+
+      // Drawing functionality
+      if ((isTouchDevice && isDrawing) || (!isTouchDevice && drawingMode)) {
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, strokeWidth / 2, 0, Math.PI * 2);
+        ctx.fillStyle = trailColor;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = trailColor;
+        ctx.fill();
+      }
+    }
+
+    // Event Listeners for Mouse
+    if (!isTouchDevice) {
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.btn') && !e.target.closest('.control-panel')) {
+          drawingMode = !drawingMode;
+          eraserMode = false;
+          bigEraserMode = false;
+          updateUI();
+        }
+      });
+
+      document.addEventListener('mousemove', draw);
+
+      // Keyboard Shortcuts
+      document.addEventListener('keydown', (e) => {
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const isCtrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+
+        if (isCtrlOrCmd && e.shiftKey) {
+          switch (e.key.toLowerCase()) {
+            case 'e':
+              e.preventDefault();
+              toggleEraserMode();
+              break;
+            case 'b':
+              e.preventDefault();
+              toggleBigEraserMode();
+              break;
+            default:
+              break;
+          }
+        }
+      });
+    }
+
+    // Event Listeners for Mouse Drawing
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    canvas.addEventListener('mousemove', draw);
+
+    // Event Listeners for Touch
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener('touchcancel', stopDrawing);
+    canvas.addEventListener('touchmove', draw);
 
     colorPicker.addEventListener('input', (e) => {
       trailColor = e.target.value;
@@ -320,49 +457,17 @@
       strokeWidthValue.textContent = strokeWidth;
     });
 
-    document.addEventListener('mousemove', (e) => {
-      const mouseX = e.pageX;
-      const mouseY = e.pageY;
-
-      outerCircle.style.left = `${mouseX}px`;
-      outerCircle.style.top = `${mouseY}px`;
-      innerCircle.style.left = `${mouseX}px`;
-      innerCircle.style.top = `${mouseY}px`;
-
-      if (drawingMode && !eraserMode && !bigEraserMode) {
-        ctx.beginPath();
-        ctx.arc(mouseX, mouseY, strokeWidth / 2, 0, Math.PI * 2); // Adjusted for stroke width
-        ctx.fillStyle = trailColor;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = trailColor;
-        ctx.fill();
-      }
-
-      if (eraserMode) {
-        ctx.clearRect(mouseX - 10, mouseY - 10, 20, 20);
-      }
-
-      if (bigEraserMode) {
-        ctx.clearRect(mouseX - 30, mouseY - 30, 60, 60);
-      }
-    });
-
     eraseBtn.addEventListener('click', () => {
-      eraserMode = !eraserMode;
-      bigEraserMode = false;
-      drawingMode = false;
-      updateUI();
+      toggleEraserMode();
     });
 
     bigEraseBtn.addEventListener('click', () => {
-      bigEraserMode = !bigEraserMode;
-      eraserMode = false;
-      drawingMode = false;
-      updateUI();
+      toggleBigEraserMode();
     });
 
     clearBtn.addEventListener('click', () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Update the current slide data after clearing
       saveCurrentSlide();
     });
 
@@ -374,25 +479,23 @@
       link.click();
     });
 
-    document.addEventListener('keydown', (e) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const isCtrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
-
-      if (isCtrlOrCmd && e.shiftKey) {
-        switch (e.key.toLowerCase()) {
-          case 'e':
-            e.preventDefault();
-            toggleEraserMode();
-            break;
-          case 'b':
-            e.preventDefault();
-            toggleBigEraserMode();
-            break;
-          default:
-            break;
-        }
+    function updateUI() {
+      if (drawingMode) {
+        drawIndicator.textContent = 'Drawing Mode ON';
+        drawIndicator.classList.add('active');
+      } else if (eraserMode) {
+        drawIndicator.textContent = 'Small Eraser Mode';
+        drawIndicator.classList.add('active');
+      } else if (bigEraserMode) {
+        drawIndicator.textContent = 'Big Eraser Mode';
+        drawIndicator.classList.add('active');
+      } else {
+        drawIndicator.classList.remove('active');
       }
-    });
+
+      eraseBtn.classList.toggle('active', eraserMode);
+      bigEraseBtn.classList.toggle('active', bigEraserMode);
+    }
 
     function toggleEraserMode() {
       eraserMode = !eraserMode;
@@ -412,22 +515,14 @@
       updateUI();
     }
 
-    function updateUI() {
-      if (drawingMode) {
-        drawIndicator.classList.add('active');
-      } else {
-        drawIndicator.classList.remove('active');
-      }
-
-      eraseBtn.classList.toggle('active', eraserMode);
-      bigEraseBtn.classList.toggle('active', bigEraserMode);
-    }
-
+    // Functions for slide management
     function saveCurrentSlide() {
+      // Save the current canvas content to slides array
       slides[currentSlideIndex] = ctx.getImageData(0, 0, canvas.width, canvas.height);
     }
 
     function loadCurrentSlide() {
+      // Load the current slide's content into the canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.putImageData(slides[currentSlideIndex], 0, 0);
     }
@@ -437,11 +532,14 @@
     }
 
     addSlideBtn.addEventListener('click', () => {
+      // Save current slide
       saveCurrentSlide();
 
+      // Clear the canvas for the new slide
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      currentSlideIndex = slides.length; 
+      // Add a new slide
+      currentSlideIndex = slides.length; // Set to the new slide index
       slides.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
 
       updateSlideIndicator();
@@ -462,11 +560,14 @@
     function navigateToSlide(targetIndex, direction) {
       saveCurrentSlide();
 
+      // Get the target slide data
       const targetSlideData = slides[targetIndex];
 
+      // Prepare the transition canvas
       transitionCtx.clearRect(0, 0, transitionCanvas.width, transitionCanvas.height);
       transitionCtx.putImageData(targetSlideData, 0, 0);
 
+      // Position canvases for animation
       canvas.style.transition = 'none';
       transitionCanvas.style.transition = 'none';
 
@@ -478,8 +579,10 @@
         transitionCanvas.style.left = `-${width}px`;
       }
 
+      // Force reflow
       void canvas.offsetWidth;
 
+      // Start animation
       canvas.style.transition = 'left 0.5s ease';
       transitionCanvas.style.transition = 'left 0.5s ease';
 
@@ -491,26 +594,32 @@
         transitionCanvas.style.left = '0px';
       }
 
+      // Update current slide index
       currentSlideIndex = targetIndex;
       updateSlideIndicator();
 
+      // After animation ends, swap canvases
       setTimeout(() => {
+        // Swap the contents of the canvases
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.putImageData(slides[currentSlideIndex], 0, 0);
 
+        // Reset canvas positions
         canvas.style.transition = 'none';
         transitionCanvas.style.transition = 'none';
         canvas.style.left = '0px';
         transitionCanvas.style.left = '0px';
 
+        // Clear the transition canvas
         transitionCtx.clearRect(0, 0, transitionCanvas.width, transitionCanvas.height);
-      }, 500); 
+      }, 500); // Duration should match the CSS transition duration
     }
 
     saveAllBtn.addEventListener('click', () => {
       const zip = new JSZip();
 
       slides.forEach((slideData, index) => {
+        // Create a temporary canvas to render the slide
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = canvas.width;
         tempCanvas.height = canvas.height;
@@ -520,11 +629,14 @@
 
         const dataURL = tempCanvas.toDataURL('image/png');
 
+        // Remove the data URL prefix to get the pure base64 string
         const base64Data = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
 
+        // Add to zip
         zip.file(`slide_${index + 1}.png`, base64Data, { base64: true });
       });
 
+      // Generate the zip file and trigger download
       zip.generateAsync({ type: 'blob' }).then(function(content) {
         saveAs(content, 'slides.zip');
       });
